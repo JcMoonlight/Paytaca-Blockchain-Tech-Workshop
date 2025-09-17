@@ -1,0 +1,129 @@
+<template>
+  <!-- The html elements is here -->
+  <div class="q-pa-lg index-page-container">
+    <div class="contract-card">
+      <h5 class="ellipsis">
+        Contract address: {{ contractAddress }}
+      </h5>
+
+      <div>Payout Amount: {{ paymentAmountBch }} BCH</div>
+      <div>Owner address: {{ ownerAddress }}</div>
+      <div>Passcode: {{ passcode }}</div>
+
+      <!-- Activity: Add event listener -->
+      <button @click="createContract" class="my-btn">
+        Create contract
+      </button>
+
+      <!-- Activity: Add component props -->
+      <DisplayAddressButton :address="contractAddress" /> 
+      <!-- //:qrSize="100" -->
+
+      <SweepVaultButton />
+    </div>
+
+    <PasswordVaultFormCard @createContract="onFormCardSubmit"/>
+    <ClaimVaultCard />
+  </div>
+</template>
+
+<script>
+import { defineComponent } from 'vue'
+import { createContractInstance } from 'src/lib/contract.js'
+import DisplayAddressButton from 'src/components/buttons/DisplayAddressButton.vue'
+import PasswordVaultFormCard from 'src/components/cards/PasswordVaultFormCard.vue';
+import SweepVaultButton from 'src/components/buttons/SweepVaultButton.vue';
+import ClaimVaultCard from 'src/components/cards/ClaimVaultCard.vue';
+
+import { mapState } from 'pinia'
+import { useContractStore } from 'src/stores/contract-store';
+
+export default defineComponent({
+  name: 'IndexPage',
+  components: {
+    DisplayAddressButton,
+    PasswordVaultFormCard,
+    SweepVaultButton,
+    ClaimVaultCard,
+  },
+  data() {
+    return {
+      // Copy values used in 'contracts/password-vault-instantiate.js'
+      // payoutAmount: 1234n,
+      // ownerAddress: 'bitcoincash:qqx5mk6nzxu56vqk0d8626e70k2cpcjw5vdtm3d7yn', // bitcoincash:q + <41 characters>
+      // passcode: '123456',
+
+      // contractAddress: '',
+    }
+  },
+
+  computed: {
+    ...mapState(useContractStore, {
+      // Add mappable state here,
+      contractAddress: 'contractAddress',
+      payoutAmount: 'payoutAmount',
+      ownerAddress: 'ownerAddress',
+      passcode: 'passcode',
+    }),
+    paymentAmountBch: function() {
+      // convert this.payoutAmount that is in satoshis to BCH
+      // NOTE: 100_000_000 satoshis = 1 BCH
+      return Number(this.payoutAmount) / 100_000_000;
+    },
+  },
+
+  methods: {
+    onFormCardSubmit(payoutAmount, ownerAddress, passcode) {
+      const contractStore = useContractStore();
+      contractStore.saveContract(payoutAmount, ownerAddress, passcode);
+      // this.payoutAmount = payoutAmount;
+      // this.ownerAddress = ownerAddress;
+      // this.passcode = passcode;
+      // this.createContract();
+    },
+    createContract(){
+      const passwordVaultContract = createContractInstance(this.payoutAmount, this.ownerAddress, this.passcode)
+      this.contractAddress = passwordVaultContract.address;
+    },
+  },
+
+  mounted() {
+    // Activity: Autorun create contract
+    this.createContract();  
+    
+  }
+});
+</script>
+<style scoped>
+.index-page-container {
+  max-width: min(600px, 85vw);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h5 {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+button {
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
+button.my-btn {
+  background: #2196f3 !important;
+  color: white;
+  border: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+button.my-btn:active {
+  background-color: #1d7cc9 !important;
+}
+
+div.contract-card {
+  margin-bottom: 40px;
+}
+</style>
